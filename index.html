@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+
+   <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -306,6 +307,83 @@
   .cond-row .and-label { font-family: "Menlo","Consolas",monospace; font-size: 11px; color: var(--ink-soft); font-weight: bold; }
 
   .dim-select { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+
+  /* ---- Formula sheet ---- */
+  .formula-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 22px 26px;
+    max-width: 900px;
+    margin-bottom: 22px;
+  }
+  .formula-panel h2 {
+    font-size: 19px; margin: 0 0 4px; color: var(--navy);
+    padding-bottom: 8px; border-bottom: 2px solid var(--accent-soft);
+  }
+  .formula-panel .fp-desc {
+    font-family: -apple-system, sans-serif; font-size: 12.5px; color: var(--ink-soft);
+    margin: 6px 0 16px; line-height: 1.5;
+  }
+  .fblock {
+    background: #0f1e33;
+    color: #eaf0ff;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 10px 0;
+    font-family: "Menlo","Consolas",monospace;
+    font-size: 16px;
+    line-height: 1.9;
+    overflow-x: auto;
+  }
+  .fblock .flabel {
+    display: block;
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    color: #8db2ff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .fnote {
+    font-family: -apple-system, sans-serif;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    margin: 6px 0 14px;
+  }
+  .fnote b { color: var(--ink); }
+  .fvars {
+    font-family: "Menlo","Consolas",monospace;
+    font-size: 12px;
+    background: #f4f9ff;
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin: 8px 0 16px;
+    line-height: 1.8;
+  }
+  .fvars .vk { color: var(--navy); font-weight: bold; }
+  .fsteps {
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 1.9;
+    margin: 8px 0 16px;
+    padding-left: 20px;
+  }
+  .fsteps li { margin-bottom: 4px; }
+  .finterp {
+    display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0 16px;
+  }
+  .finterp .fi-item {
+    font-family: "Menlo","Consolas",monospace; font-size: 12px;
+    background: #f7f5ef; border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px 12px; flex: 1; min-width: 160px;
+  }
+  .finterp .fi-item.good { border-color: var(--good); color: var(--good); }
+  .finterp .fi-item.warn { border-color: var(--warn); color: var(--warn); }
+  .fdivider { height: 1px; background: var(--line); margin: 20px 0; }
+
 </style>
 </head>
 <body>
@@ -318,6 +396,7 @@
     <div class="modetabs">
       <button class="modetab active" id="tabSearch">🔍 Skript-Suche</button>
       <button class="modetab" id="tabCalc">🧮 Rechner (Übungstypen)</button>
+      <button class="modetab" id="tabFormulas">📐 Formeln (ohne Zahlen)</button>
     </div>
     <div id="searchHeaderExtra">
       <div class="searchwrap">
@@ -379,6 +458,7 @@
   ============================================================ */
   const tabSearch = document.getElementById('tabSearch');
   const tabCalc = document.getElementById('tabCalc');
+  const tabFormulas = document.getElementById('tabFormulas');
   const searchHeaderExtra = document.getElementById('searchHeaderExtra');
   const metaRow = document.getElementById('metaRow');
   const resultsEl = document.getElementById('results');
@@ -389,17 +469,23 @@
     mode = m;
     tabSearch.classList.toggle('active', m === 'search');
     tabCalc.classList.toggle('active', m === 'calc');
+    tabFormulas.classList.toggle('active', m === 'formulas');
     searchHeaderExtra.classList.toggle('hidden', m !== 'search');
     if (m === 'search') {
       metaRow.classList.remove('hidden');
       runSearch();
-    } else {
+    } else if (m === 'calc') {
       metaRow.classList.add('hidden');
       renderCalc();
+    } else if (m === 'formulas') {
+      metaRow.classList.add('hidden');
+      resultsEl.innerHTML = '';
+      renderFormulas(resultsEl);
     }
   }
   tabSearch.addEventListener('click', () => setMode('search'));
   tabCalc.addEventListener('click', () => setMode('calc'));
+  tabFormulas.addEventListener('click', () => setMode('formulas'));
 
   /* ============================================================
      SEARCH MODULE
@@ -1348,6 +1434,117 @@
     panel.appendChild(addBtn);
 
     host.appendChild(panel);
+  }
+
+  /* ============================================================
+     FORMULA SHEET (reine Formeln, keine Zahlen — für beliebige Klausur-Varianten)
+  ============================================================ */
+  function renderFormulas(host) {
+    const wrap = document.createElement('div');
+
+    const intro = document.createElement('div');
+    intro.style.cssText = 'max-width:900px;font-family:-apple-system,sans-serif;font-size:13px;color:var(--ink-soft);margin-bottom:16px;line-height:1.6;';
+    intro.innerHTML = '<b style="color:var(--ink)">Reiner Formel-Spickzettel</b> — ohne eingesetzte Zahlen, damit du jede Variante rechnen kannst, egal welche Werte der Prof gibt. Für den Rechner mit deinen eigenen Zahlen wechsle zum Tab "🧮 Rechner".';
+    wrap.appendChild(intro);
+
+    /* ---------------- 1. ENTROPY / INFORMATION GAIN ---------------- */
+    const p1 = document.createElement('div'); p1.className = 'formula-panel';
+    p1.innerHTML = `
+      <h2>1. Entropie &amp; Information Gain</h2>
+      <div class="fp-desc">Misst, wie "unrein"/gemischt eine Menge von Instanzen bzgl. ihrer Klassen ist — Basis für Entscheidungsbaum-Splits.</div>
+
+      <div class="fblock"><span class="flabel">Entropie einer Menge D mit Klassen 1…k</span>Info(D) = entropy(p₁, …, pₖ) = − Σᵢ pᵢ · log₂(pᵢ)</div>
+      <div class="fvars">
+        <span class="vk">pᵢ</span> = Anteil der Instanzen von Klasse i in D = (Anzahl Klasse i) / (Gesamtzahl in D)<br>
+        <span class="vk">D</span> = Datenmenge (gesamt oder ein Teilknoten/Branch)
+      </div>
+      <div class="finterp">
+        <div class="fi-item good">Entropie = 0 → Knoten ist rein (nur 1 Klasse)</div>
+        <div class="fi-item warn">Entropie = 1 (bei 2 Klassen) → maximal gemischt (50/50)</div>
+      </div>
+
+      <div class="fdivider"></div>
+
+      <div class="fblock"><span class="flabel">Gewichtete Entropie nach Split auf Attribut A (mit Werten v₁…vₘ)</span>Info(D, A) = Σᵥ (|Dᵥ| / |D|) · Info(Dᵥ)</div>
+      <div class="fvars">
+        <span class="vk">Dᵥ</span> = Teilmenge von D, bei der Attribut A den Wert v hat (ein "Branch")<br>
+        <span class="vk">|Dᵥ| / |D|</span> = Gewicht des Branches (Anteil an der Gesamtmenge)
+      </div>
+
+      <div class="fdivider"></div>
+
+      <div class="fblock"><span class="flabel">Information Gain</span>Gain(A) = Info(D) − Info(D, A)</div>
+      <ul class="fsteps">
+        <li>1. Info(D) berechnen — Entropie der Gesamtmenge (vor dem Split)</li>
+        <li>2. Für jeden Attributwert (Branch): Klassen auszählen → Info(Dᵥ) berechnen</li>
+        <li>3. Gewichteten Durchschnitt Info(D, A) bilden (Gewicht = Branch-Größe / Gesamtgröße)</li>
+        <li>4. Gain(A) = Info(D) − Info(D, A)</li>
+        <li>5. Für mehrere Kandidaten-Attribute wiederholen → höchster Gain = bestes Split-Attribut</li>
+      </ul>
+      <div class="fnote"><b>Merke:</b> Bei binärer Klasse (2 Werte) liegt Entropie zwischen 0 und 1. Bei k Klassen liegt sie zwischen 0 und log₂(k). Ein Branch mit nur einer Klasse hat immer Entropie 0, unabhängig von der Zahlengröße.</div>
+    `;
+    wrap.appendChild(p1);
+
+    /* ---------------- 2. K-MEANS ---------------- */
+    const p2 = document.createElement('div'); p2.className = 'formula-panel';
+    p2.innerHTML = `
+      <h2>2. K-Means Clustering</h2>
+      <div class="fp-desc">Partitioniert Datenpunkte in k Cluster, sodass Punkte innerhalb eines Clusters möglichst ähnlich (nah) sind.</div>
+
+      <div class="fblock"><span class="flabel">Euclidean Distance (Standard)</span>d(p, q) = √( Σᵢ (pᵢ − qᵢ)² )</div>
+      <div class="fblock"><span class="flabel">Manhattan / City-Block Distance (Alternative)</span>d(p, q) = Σᵢ |pᵢ − qᵢ|</div>
+      <div class="fvars">
+        <span class="vk">p, q</span> = zwei Punkte (Datenpunkt und Zentroid), z.B. p = (p₁, p₂, …, pₙ) für n Dimensionen/Merkmale<br>
+        <span class="vk">i</span> = läuft über alle Dimensionen (bei 2D: local &amp; international; bei mehr Merkmalen entsprechend mehr Terme)
+      </div>
+
+      <div class="fdivider"></div>
+
+      <div class="fblock"><span class="flabel">Neuer Zentroid (Mittelwert je Cluster)</span>Cⱼ = (1/n) · Σ xᵢ　　für alle xᵢ im Cluster j</div>
+      <div class="fvars">
+        <span class="vk">n</span> = Anzahl der Punkte, die aktuell Cluster j zugeordnet sind<br>
+        <span class="vk">xᵢ</span> = jeder Punkt in Cluster j — Mittelwert wird für jede Dimension separat gebildet
+      </div>
+
+      <div class="fdivider"></div>
+
+      <ul class="fsteps">
+        <li>1. k Start-Zentroide festlegen (meist vorgegeben oder zufällig)</li>
+        <li>2. Jeden Punkt dem <b>nächstgelegenen</b> Zentroid zuordnen (kleinste Distanz)</li>
+        <li>3. Neue Zentroide berechnen = Mittelwert aller Punkte je Cluster</li>
+        <li>4. Schritte 2–3 wiederholen, bis sich keine Zuordnung mehr ändert (Konvergenz)</li>
+      </ul>
+      <div class="fnote"><b>Merke:</b> K-means minimiert die within-cluster variation (Streuung innerhalb der Cluster). Bei Gleichstand (zwei Zentroide exakt gleich weit entfernt) ist die Zuordnung frei wählbar — im Zweifel im Skript/bei der Angabe nachsehen, welche Konvention gilt.</div>
+    `;
+    wrap.appendChild(p2);
+
+    /* ---------------- 3. ASSOCIATION RULES ---------------- */
+    const p3 = document.createElement('div'); p3.className = 'formula-panel';
+    p3.innerHTML = `
+      <h2>3. Assoziationsregeln</h2>
+      <div class="fp-desc">Misst, wie stark zwei Item-/Attributmengen X (Antezedent) und Y (Konsequent) zusammenhängen, Regel: <span style="font-family:monospace">IF X THEN Y</span>.</div>
+
+      <div class="fblock"><span class="flabel">Support</span>Support(X → Y) = |X ∩ Y| / N</div>
+      <div class="fblock"><span class="flabel">Confidence</span>Confidence(X → Y) = |X ∩ Y| / |X|</div>
+      <div class="fblock"><span class="flabel">Lift</span>Lift(X → Y) = Confidence(X → Y) / Support(Y) = Confidence(X → Y) / (|Y| / N)</div>
+      <div class="fvars">
+        <span class="vk">N</span> = Gesamtzahl aller Instanzen/Transaktionen<br>
+        <span class="vk">|X|</span> = Anzahl Instanzen, die die Antezedent-Bedingung(en) erfüllen<br>
+        <span class="vk">|X ∩ Y|</span> = Anzahl Instanzen, die sowohl X <b>als auch</b> Y erfüllen<br>
+        <span class="vk">|Y|</span> = Anzahl Instanzen, die die Konsequent-Bedingung erfüllen (unabhängig von X)
+      </div>
+
+      <div class="finterp">
+        <div class="fi-item good">Lift &gt; 1 → positive Assoziation (X macht Y wahrscheinlicher)</div>
+        <div class="fi-item">Lift = 1 → X und Y unabhängig</div>
+        <div class="fi-item warn">Lift &lt; 1 → negative Assoziation (X macht Y unwahrscheinlicher)</div>
+      </div>
+
+      <div class="fnote"><b>Merke:</b> Confidence allein kann täuschen — eine hohe Confidence kann einfach daran liegen, dass Y sowieso sehr häufig vorkommt (hohe Grundrate). Lift korrigiert das, indem es Confidence mit P(Y) = |Y|/N vergleicht. Bei mehreren UND-Bedingungen in X einfach |X| als "Anzahl Instanzen, die ALLE Bedingungen gleichzeitig erfüllen" auszählen.</div>
+    `;
+    wrap.appendChild(p3);
+
+    host.appendChild(wrap);
   }
 
   /* ============================================================
